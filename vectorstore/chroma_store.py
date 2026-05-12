@@ -1,24 +1,27 @@
 import os
 from typing import List, Any
 from langchain_community.vectorstores import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
-
-# Initialize the embedding model
-# We use all-MiniLM-L6-v2 as it's fast and highly effective for semantic search
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+from langchain_openai import OpenAIEmbeddings
+import streamlit as st
 
 # Directory to persist ChromaDB
 PERSIST_DIRECTORY = os.path.join(os.getcwd(), "chroma_db")
 
+def get_embeddings():
+    """Gets OpenAI embeddings with API key safely."""
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key and hasattr(st, "secrets") and "OPENAI_API_KEY" in st.secrets:
+        api_key = st.secrets["OPENAI_API_KEY"]
+    return OpenAIEmbeddings(api_key=api_key) if api_key else OpenAIEmbeddings()
+
 def get_vectorstore() -> Chroma:
     """Returns the Chroma vectorstore instance."""
-    # Create directory if it doesn't exist
     if not os.path.exists(PERSIST_DIRECTORY):
         os.makedirs(PERSIST_DIRECTORY)
         
     vectorstore = Chroma(
         persist_directory=PERSIST_DIRECTORY,
-        embedding_function=embeddings
+        embedding_function=get_embeddings()
     )
     return vectorstore
 
@@ -35,7 +38,7 @@ def similarity_search(query: str, k: int = 4):
     return results
 
 def clear_vectorstore():
-    """Clears the existing vectorstore (useful when uploading a new document)."""
+    """Clears the existing vectorstore."""
     try:
         vectorstore = get_vectorstore()
         vectorstore.delete_collection()
