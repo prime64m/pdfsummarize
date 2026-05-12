@@ -1,18 +1,16 @@
 import os
 from typing import List, Any
 from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 import streamlit as st
 
 # Directory to persist ChromaDB
 PERSIST_DIRECTORY = os.path.join(os.getcwd(), "chroma_db")
 
+@st.cache_resource
 def get_embeddings():
-    """Gets OpenAI embeddings with API key safely."""
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key and hasattr(st, "secrets") and "OPENAI_API_KEY" in st.secrets:
-        api_key = st.secrets["OPENAI_API_KEY"]
-    return OpenAIEmbeddings(api_key=api_key) if api_key else OpenAIEmbeddings()
+    """Gets local lightweight HuggingFace embeddings."""
+    return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 def get_vectorstore() -> Chroma:
     """Returns the Chroma vectorstore instance."""

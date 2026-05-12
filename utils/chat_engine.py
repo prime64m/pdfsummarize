@@ -1,26 +1,24 @@
-import os
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
-from langchain_openai import ChatOpenAI
+from langchain_huggingface import HuggingFacePipeline
+from transformers import pipeline
 import streamlit as st
 from vectorstore.chroma_store import get_vectorstore
 
 @st.cache_resource
 def get_llm():
-    """Initializes OpenAI LLM for conversational RAG."""
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key and hasattr(st, "secrets") and "OPENAI_API_KEY" in st.secrets:
-        api_key = st.secrets["OPENAI_API_KEY"]
-        
-    if not api_key:
-        st.error("Missing OPENAI_API_KEY! Please set it in your environment or Streamlit Secrets.")
-        st.stop()
-        
-    return ChatOpenAI(
+    """Initializes a local LLM for conversational RAG."""
+    # Using flan-t5-small as it is extremely lightweight (~300MB)
+    # and will run safely on Streamlit Cloud's 1GB RAM limit.
+    pipe = pipeline(
+        "text2text-generation",
+        model="google/flan-t5-small",
+        max_length=256,
         temperature=0.3,
-        model_name="gpt-4o-mini",
-        api_key=api_key
+        do_sample=True,
     )
+    llm = HuggingFacePipeline(pipeline=pipe)
+    return llm
 
 def get_conversation_chain():
     """Creates the conversational retrieval chain."""
